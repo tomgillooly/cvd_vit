@@ -1,0 +1,85 @@
+@@ -21,7 +21,7 @@
+import torch
+import torch.nn as nn
+
+from utils import trunc_normal_
+from .utils import trunc_normal_
+
+
+def drop_path(x, drop_prob: float = 0., training: bool = False):
+@@ -82,14 +82,14 @@ def forward(self, x):
+        qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
+        q, k, v = qkv[0], qkv[1], qkv[2]
+
+        attn = (q @ k.transpose(-2, -1)) * self.scale
+        attn = attn.softmax(dim=-1)
+        attn_logits = (q @ k.transpose(-2, -1)) * self.scale
+        attn = attn_logits.softmax(dim=-1)
+        attn = self.attn_drop(attn)
+
+        x = (attn @ v).transpose(1, 2).reshape(B, N, C)
+        x = self.proj(x)
+        x = self.proj_drop(x)
+        return x, attn
+        return x, attn_logits
+
+
+class Block(nn.Module):
+@@ -106,11 +106,12 @@ def __init__(self, dim, num_heads, mlp_ratio=4., qkv_bias=False, qk_scale=None,
+
+    def forward(self, x, return_attention=False):
+        y, attn = self.attn(self.norm1(x))
+        if return_attention:
+            return attn
+        x = x + self.drop_path(y)
+        x = x + self.drop_path(self.mlp(self.norm2(x)))
+        return x
+        if return_attention:
+            return x, attn
+        else:
+            return x
+
+
+class PatchEmbed(nn.Module):
+@@ -213,14 +214,39 @@ def forward(self, x):
+        x = self.norm(x)
+        return x[:, 0]
+
+    def get_last_selfattention(self, x):
+    def get_nth_selfattention(self, x, n=0):
+        x = self.prepare_tokens(x)
+        for i, blk in enumerate(self.blocks):
+            if i < len(self.blocks) - 1:
+            if i < n:
+                x = blk(x)
+            else:
+                # return attention of the last block
+                return blk(x, return_attention=True)
+
+    def get_first_selfattention(self, x):
+        return self.get_nth_selfattention(x, 0)
+
+    def get_last_selfattention(self, x):
+        return self.get_nth_selfattention(x, len(self.blocks)-1)
+
+    def get_first_n_outputs(self, x, n=1):
+        x = self.prepare_tokens(x)
+        # we return the output tokens from the `n` last blocks
+        output = []
+        for i, blk in enumerate(self.blocks):
+            x = blk(x)
+            if i <= n:
+                output.append(self.norm(x))
+        return output
+
+    def get_first_n_attn(self, x, n=1):
+        x = self.prepare_tokens(x)
+        # we return the output tokens from the `n` last blocks
+        attn = []
+        for i, blk in enumerate(self.blocks[:n]):
+            x, a = blk(x, return_attention=True)
+            attn.append(a)
+        return attn
+
+    def get_intermediate_layers(self, x, n=1):
+        x = self.prepare_tokens(x)
