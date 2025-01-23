@@ -50,3 +50,17 @@ To visualise the results, the command
 python adjoint_recolour_results.py --dataset_type [dataset_name] --cvd_type [cvd_type] --image_number [i]
 ```
 will output a grid of the style found in the paper for image [i] of [dataset_name] for mild, moderate, and high severities of CVD type [cvd_type]
+
+# Citation
+
+If you use this code, please cite our paper:
+
+```
+@InProceedings{Gillooly_2025_WACV,
+    author    = {Gillooly, Thomas and Thomas, Jean-Baptiste and Hardeberg, Jon Yngve and Guarnera, Giuseppe Claudio},
+    title     = {Image Adaptation for Colour Vision Deficient Viewers Using Vision Transformers},
+    booktitle = {Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision (WACV)},
+    month     = {February},
+    year      = {2025},
+}
+```
